@@ -6,7 +6,6 @@ function connectDB() {
     var connection = DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
     return connection;
 }
-
 var $ = {
     logger:function(name){
         var factory=Java.type("org.slf4j.LoggerFactory");
