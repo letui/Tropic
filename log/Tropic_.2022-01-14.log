@@ -1,0 +1,11 @@
+2022-01-14 11:08:25.495 [main] INFO  default - Server for listen on port:9999
+2022-01-14 11:08:25.598 [main] INFO  default - Init servlet for path:/
+2022-01-14 11:08:25.599 [main] INFO  default - Init servlet for path:/@db
+2022-01-14 11:08:25.601 [main] INFO  default - Init servlet for path:/@bind
+2022-01-14 11:08:25.626 [main] INFO  default - Tropic is started.
+2022-01-14 11:08:30.040 [Thread-3] INFO  default - Server is stopped
+2022-01-14 11:09:25.071 [main] INFO  default - Server for listen on port:9999
+2022-01-14 11:09:25.118 [main] INFO  default - Init servlet for path:/
+2022-01-14 11:09:25.119 [main] INFO  default - Init servlet for path:/@db
+2022-01-14 11:09:25.120 [main] INFO  default - Init servlet for path:/@bind
+2022-01-14 11:09:25.139 [main] INFO  default - Tropic is started.
