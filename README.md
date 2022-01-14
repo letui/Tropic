@@ -1,4 +1,3 @@
-========
 Overview
 ========
 
@@ -26,7 +25,22 @@ Jstropic是一套体积很小的框架，是面向数据库到浏览器的数据
 
 下载地址:https://github.com/letui/jstropic/releases/download/untagged-67903ef6046cd688023c/Tropic1.0.zip
 
+快速上手
+------------
+var index = {
+service: function(req, resp) {
+        try {
+            resp.body.append("Hello!! Welcome to Tropic engine.");
+            resp.msg.append("Version:1.0");
+        } catch (e) {
+            println(e);
+        }
+        return resp;
+    }
+}
+这么一段代码，启动我们的Tropic后，访问 http://127.0.0.1:9999/ 。即可在浏览器里看到：
 
+{"code":200,"msg":"Version:1.0","body":"Hello!! Welcome to Tropic engine."}
 
 Contribute
 ----------
