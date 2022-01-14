@@ -1,5 +1,5 @@
 importPackage(com.sun.net.httpserver, java.nio.charset, java.net, java.lang, java.io, java.sql,
-    java.util, java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
+    java.util, java.time.format,java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
 
 function connectDB() {
     DriverManager.getDriver(config.db.url);
@@ -211,6 +211,10 @@ var server = {
                 load(entry.servlet);
                 var servlet = engine.get(entry.name);
                 var after = servlet.service(req, resp);
+                if(!after){
+                    after.code=707;
+                    after.msg="not got any return from servlet";
+                }
                 respJsonObj = {
                     code: after.code,
                     msg: after.msg.toString(),
