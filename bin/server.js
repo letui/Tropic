@@ -7,6 +7,24 @@ function connectDB() {
     return connection;
 }
 var $ = {
+    setInterval:function(fn,time){
+        var th = new Thread(function () {
+            while (true) {
+                fn();
+                Thread.sleep(time);
+            }
+        });
+        th.start();
+        return th;
+    },
+    setTimeout:function(fn,time){
+        var th = new Thread(function () {
+            Thread.sleep(time);
+            fn();
+        });
+        th.start();
+        return th;
+    },
     logger:function(name){
         var factory=Java.type("org.slf4j.LoggerFactory");
         name=name?name:"default";
