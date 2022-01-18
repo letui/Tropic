@@ -7,6 +7,9 @@ var config =
             driver: "com.mysql.cj.jdbc.Drvier",
             poolSize: 10,
         },
+        mongo:{
+            uri:"mongodb://localhost:27017/?maxPoolSize=20&w=majority"
+        },
         redis: {
             host: "192.168.10.173",
             port: 6379,

@@ -7,6 +7,27 @@ function connectDB() {
     return connection;
 }
 var $ = {
+    asDoc:function(obj){
+        return org.bson.Document.parse($.toJson(obj));
+    },
+    mongo:function(db,collection){
+        if(!$.mongo.prototype.client){
+            var Clients=Java.type("com.mongodb.client.MongoClients");
+            var client=Clients.create(config.mongo.uri);
+            $.mongo.prototype.client=client;
+        }
+        var client=$.mongo.prototype.client;
+        try{
+            if(db&&!collection){
+                return client.getDatabase(db);
+            }else if(db&&collection){
+                return client.getDatabase(db).getCollection(collection);
+            }
+            return null;
+        }catch (e) {
+            $.logger("mongo").warn("error with mongo client");
+        }
+    },
     setInterval:function(fn,time){
         var th = new Thread(function () {
             while (true) {
