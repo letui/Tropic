@@ -258,8 +258,8 @@ var server = {
     accept: function (ex) {
         var reqPath = ex.getRequestURI().getPath();
         if (config.server.static_resource && reqPath.contains(".")) {
-            var subfix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
-            if (config.server.static_resource.indexOf(subfix) > -1) {
+            var suffix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
+            if (config.server.static_resource.indexOf(suffix) > -1) {
                 load("./bin/static.js");
                 static_servlet.service(ex,reqPath);
                 return;
