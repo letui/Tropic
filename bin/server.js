@@ -200,6 +200,10 @@ var $ = {
             println(e);
             throw e;
         }
+    },
+    redirect:function(resp,url){
+        resp.to=url;
+        return resp;
     }
 };
 
@@ -273,6 +277,12 @@ var server = {
                 load(entry.servlet);
                 var servlet = engine.get(entry.name);
                 var after = servlet.service(req, resp);
+
+                if(after.to){
+                    ex.getResponseHeaders().set("Location",after.to);
+                    ex.sendResponseHeaders(302,-1);
+                }
+
                 respJsonObj = {
                     code: after.code,
                     msg: after.msg.toString(),
