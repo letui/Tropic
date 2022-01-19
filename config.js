@@ -7,6 +7,11 @@ var config =
             driver: "com.mysql.cj.jdbc.Drvier",
             poolSize: 10,
         },
+        neo4j:{
+            uri:"bolt://127.0.0.1:7687/neo4j",
+            user:"neo4j",
+            password:"123qwe123"
+        },
         mongo:{
             uri:"mongodb://localhost:27017/?maxPoolSize=20&w=majority"
         },

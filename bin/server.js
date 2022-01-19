@@ -7,6 +7,17 @@ function connectDB() {
     return connection;
 }
 var $ = {
+    neo4j:function(session){
+        if(!$.neo4j.prototype.driver){
+            var driver=org.neo4j.driver.GraphDatabase.driver(config.neo4j.uri,org.neo4j.driver.AuthTokens.basic(config.neo4j.user,config.neo4j.password));
+            $.neo4j.prototype.driver=driver;
+        }
+        if(session){
+            return $.neo4j.prototype.driver.session();
+        }else{
+            return $.neo4j.prototype.driver;
+        }
+    },
     asDoc:function(obj){
         return org.bson.Document.parse($.toJson(obj));
     },
