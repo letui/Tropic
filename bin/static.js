@@ -2,7 +2,7 @@ var static_servlet = {
     service: function (ex,reqPath) {
         var localPath=Paths.get("./static"+reqPath);
         if(Files.exists(localPath)){
-            var resource=Files.readAllBytes(Paths.get("./static"+reqPath));
+            var resource=Files.readAllBytes(localPath);
             ex.sendResponseHeaders(200, resource.length);
             ex.getResponseBody().write(resource);
             ex.getResponseBody().close();
