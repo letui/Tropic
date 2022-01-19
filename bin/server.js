@@ -1,45 +1,48 @@
 importPackage(com.sun.net.httpserver, java.nio.charset, java.net, java.lang, java.io, java.sql,
-    java.util, java.time.format,java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
+    java.util, java.time.format, java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
+importPackage(com.mongodb);
+importPackage(java.nio.file);
 
 function connectDB() {
     DriverManager.getDriver(config.db.url);
     var connection = DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
     return connection;
 }
+
 var $ = {
-    neo4j:function(session){
-        if(!$.neo4j.prototype.driver){
-            var driver=org.neo4j.driver.GraphDatabase.driver(config.neo4j.uri,org.neo4j.driver.AuthTokens.basic(config.neo4j.user,config.neo4j.password));
-            $.neo4j.prototype.driver=driver;
+    neo4j: function (session) {
+        if (!$.neo4j.prototype.driver) {
+            var driver = org.neo4j.driver.GraphDatabase.driver(config.neo4j.uri, org.neo4j.driver.AuthTokens.basic(config.neo4j.user, config.neo4j.password));
+            $.neo4j.prototype.driver = driver;
         }
-        if(session){
+        if (session) {
             return $.neo4j.prototype.driver.session();
-        }else{
+        } else {
             return $.neo4j.prototype.driver;
         }
     },
-    asDoc:function(obj){
+    asDoc: function (obj) {
         return org.bson.Document.parse($.toJson(obj));
     },
-    mongo:function(db,collection){
-        if(!$.mongo.prototype.client){
-            var Clients=Java.type("com.mongodb.client.MongoClients");
-            var client=Clients.create(config.mongo.uri);
-            $.mongo.prototype.client=client;
+    mongo: function (db, collection) {
+        if (!$.mongo.prototype.client) {
+            var Clients = Java.type("com.mongodb.client.MongoClients");
+            var client = Clients.create(config.mongo.uri);
+            $.mongo.prototype.client = client;
         }
-        var client=$.mongo.prototype.client;
-        try{
-            if(db&&!collection){
+        var client = $.mongo.prototype.client;
+        try {
+            if (db && !collection) {
                 return client.getDatabase(db);
-            }else if(db&&collection){
+            } else if (db && collection) {
                 return client.getDatabase(db).getCollection(collection);
             }
             return null;
-        }catch (e) {
+        } catch (e) {
             $.logger("mongo").warn("error with mongo client");
         }
     },
-    setInterval:function(fn,time){
+    setInterval: function (fn, time) {
         var th = new Thread(function () {
             while (true) {
                 fn();
@@ -49,7 +52,7 @@ var $ = {
         th.start();
         return th;
     },
-    setTimeout:function(fn,time){
+    setTimeout: function (fn, time) {
         var th = new Thread(function () {
             Thread.sleep(time);
             fn();
@@ -57,9 +60,9 @@ var $ = {
         th.start();
         return th;
     },
-    logger:function(name){
-        var factory=Java.type("org.slf4j.LoggerFactory");
-        name=name?name:"default";
+    logger: function (name) {
+        var factory = Java.type("org.slf4j.LoggerFactory");
+        name = name ? name : "default";
         return factory.getLogger(name);
     },
     redis: function (back) {
@@ -78,8 +81,8 @@ var $ = {
         }
     },
     jdbc: function (back) {
-        if(!$.jdbc.prototype.pool){
-            $.jdbc.prototype.pool=new ArrayBlockingQueue(config.db.poolSize);
+        if (!$.jdbc.prototype.pool) {
+            $.jdbc.prototype.pool = new ArrayBlockingQueue(config.db.poolSize);
         }
         if (!back) {
             try {
@@ -249,6 +252,16 @@ var server = {
         }
     },
     accept: function (ex) {
+        var reqPath = ex.getRequestURI().getPath();
+        if (config.server.static_resource && reqPath.contains(".")) {
+            var subfix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
+            if (config.server.static_resource.indexOf(subfix) > -1) {
+                load("./bin/static.js");
+                static_servlet.service(ex,reqPath);
+                return;
+            }
+        }
+
         try {
             var req = server.initRequest(ex);
             var resp = server.initResponse(ex);
@@ -260,10 +273,6 @@ var server = {
                 load(entry.servlet);
                 var servlet = engine.get(entry.name);
                 var after = servlet.service(req, resp);
-                if(!after){
-                    after.code=707;
-                    after.msg="not got any return from servlet";
-                }
                 respJsonObj = {
                     code: after.code,
                     msg: after.msg.toString(),
@@ -289,7 +298,7 @@ var server = {
     },
     start: function (config) {
         var server = HttpServer.create(new InetSocketAddress(config.server.port), -1);
-        $.logger().info("Server for listen on port:"+config.server.port);
+        $.logger().info("Server for listen on port:" + config.server.port);
         var endpoints = config.endpoints;
         var self = this;
         if (config.server.use_dynamic_bind) {
@@ -298,14 +307,14 @@ var server = {
         for (var i in endpoints) {
             this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
             server.createContext(endpoints[i].path, self.accept);
-            $.logger().info("Init servlet for path:"+endpoints[i].path);
+            $.logger().info("Init servlet for path:" + endpoints[i].path);
         }
         server.setExecutor(Executors.newFixedThreadPool(config.server.threads));
         server.start();
         this.$ = server;
         $.logger().info("Tropic is started.");
     },
-    stop:function(){
+    stop: function () {
         this.$.stop(1);
     }
 };

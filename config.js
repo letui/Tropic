@@ -30,7 +30,8 @@ var config =
             port: 9999,
             threads: 200,
             use_dynamic_bind: true,
-            auth_bind_token: "Tropic"
+            auth_bind_token: "Tropic",
+            static_resource: [".js", ".css", ".html", ".png"]
         },
         endpoints: [
             {path: "/", servlet: "./bin/index.js", name: "index"},
