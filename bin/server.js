@@ -3,11 +3,6 @@ importPackage(com.sun.net.httpserver, java.nio.charset, java.net, java.lang, jav
 importPackage(com.mongodb);
 importPackage(java.nio.file);
 
-function connectDB() {
-    DriverManager.getDriver(config.db.url);
-    return DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
-}
-
 var $ = {
     neo4j: function (session) {
         if (!$.neo4j.prototype.driver) {
@@ -75,6 +70,10 @@ var $ = {
             return $.redis.prototype.pool.getResource();
         }
     },
+    db:function() {
+        DriverManager.getDriver(config.db.url);
+        return DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
+    },
     jdbc: function (back) {
         if (!$.jdbc.prototype.pool) {
             $.jdbc.prototype.pool = new ArrayBlockingQueue(config.db.poolSize);
@@ -83,15 +82,14 @@ var $ = {
             try {
                 if ($.jdbc.prototype.pool.size() == 0) {
                     for (var i = 0; i < config.db.poolSize; i++) {
-                        $.jdbc.prototype.pool.add(connectDB());
+                        $.jdbc.prototype.pool.add($.db());
                     }
                 }
                 var conn = $.jdbc.prototype.pool.take();
                 if (!conn.isClosed()) {
                     return conn;
                 } else {
-                    conn = connectDB();
-                    return conn;
+                    return $.db();
                 }
             } catch (e) {
                 println(e);
