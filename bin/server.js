@@ -5,8 +5,7 @@ importPackage(java.nio.file);
 
 function connectDB() {
     DriverManager.getDriver(config.db.url);
-    var connection = DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
-    return connection;
+    return DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
 }
 
 var $ = {
@@ -15,11 +14,7 @@ var $ = {
             var driver = org.neo4j.driver.GraphDatabase.driver(config.neo4j.uri, org.neo4j.driver.AuthTokens.basic(config.neo4j.user, config.neo4j.password));
             $.neo4j.prototype.driver = driver;
         }
-        if (session) {
-            return $.neo4j.prototype.driver.session();
-        } else {
-            return $.neo4j.prototype.driver;
-        }
+        return session ? $.neo4j.prototype.driver.session() : $.neo4j.prototype.driver;
     },
     asDoc: function (obj) {
         return org.bson.Document.parse($.toJson(obj));
@@ -208,153 +203,168 @@ var $ = {
     filter: function (name, fn) {
         engine.put(name, {service: fn});
     },
-    servlet:function (name, fn) {
+    servlet: function (name, fn) {
         engine.put(name, {service: fn});
-    }
-};
-
-var server = {
-    initRequest: function (ex) {
-        var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody()));
-        var line = "";
-        var reqBody = "";
-        while ((line = bfr.readLine()) != null) {
-            reqBody = reqBody.concat(line);
-        }
-        return {
-            headers: ex.getRequestHeaders(),
-            method: ex.getRequestMethod(),
-            uri: ex.getRequestURI(),
-            body: reqBody.length == 0 ? null : ex.getRequestMethod() == "PATCH" ? reqBody : JSON.parse(reqBody),
-            params: ex.getRequestURI().getQuery() != null ? {
-                src: ex.getRequestURI().getQuery().split("&"),
-                get: function (key) {
-                    var rtn = [];
-                    for (var i in this.src) {
-                        if (this.src[i].startsWith(key + "=")) {
-                            rtn.push(this.src[i].substr(this.src[i].indexOf("=") + 1))
-                        }
-                    }
-                    if (rtn.length == 0) return null;
-                    return rtn.length > 1 ? rtn : rtn[0];
+    },
+    boot: function () {
+        function Server() {
+            this.initRequest = function (ex) {
+                var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody()));
+                var line = "";
+                var reqBody = "";
+                while ((line = bfr.readLine()) != null) {
+                    reqBody = reqBody.concat(line);
                 }
-            } : null
-        };
-    },
-    initResponse: function (ex) {
-        return {
-            headers: ex.getResponseHeaders(),
-            body: new StringBuffer(),
-            code: 200,
-            msg: new StringBuffer()
-        };
-    },
-    $: null,
-    routerMap: {},
-    filterMap: {},
-    bind: function (entry) {
-        this.routerMap[entry.path] = {servlet: entry.servlet, name: entry.name};
-        this.$.createContext(entry.path, this.accept);
-    },
-    unbind: function (entry) {
-        if (this.routerMap[entry.path]) {
-            this.routerMap[entry.path] = null;
-            this.$.removeContext(entry.path);
-        }
-    },
-    accept: function (ex) {
-        var reqPath = ex.getRequestURI().getPath();
-        if (config.server.static_resource && reqPath.contains(".")) {
-            var suffix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
-            if (config.server.static_resource.indexOf(suffix) > -1) {
-                load("./bin/static.js");
-                static_servlet.service(ex, reqPath);
-                return;
-            }
-        }
-
-        try {
-            var req = server.initRequest(ex);
-            var resp = server.initResponse(ex);
-
-            //filter process
-            for (var j in server.filterMap) {
-                if (ex.getRequestURI().getPath().startsWith(j)) {
-                    load(server.filterMap[j].servlet);
-                    var filter = engine.get(server.filterMap[j].name);
-                    var after = filter.service(req, resp)||resp;
-                    if (after.to) {
-                        ex.getResponseHeaders().set("Location", after.to);
-                        ex.sendResponseHeaders(302, -1);
+                return {
+                    headers: ex.getRequestHeaders(),
+                    method: ex.getRequestMethod(),
+                    uri: ex.getRequestURI(),
+                    body: reqBody.length == 0 ? null : ex.getRequestMethod() == "PATCH" ? reqBody : JSON.parse(reqBody),
+                    params: ex.getRequestURI().getQuery() != null ? {
+                        src: ex.getRequestURI().getQuery().split("&"),
+                        get: function (key) {
+                            var rtn = [];
+                            for (var i in this.src) {
+                                if (this.src[i].startsWith(key + "=")) {
+                                    rtn.push(this.src[i].substr(this.src[i].indexOf("=") + 1))
+                                }
+                            }
+                            if (rtn.length == 0) return null;
+                            return rtn.length > 1 ? rtn : rtn[0];
+                        }
+                    } : null
+                };
+            };
+            this.initResponse = function (ex) {
+                return {
+                    headers: ex.getResponseHeaders(),
+                    body: new StringBuffer(),
+                    code: 200,
+                    msg: new StringBuffer()
+                };
+            };
+            this.routerMap = {};
+            this.filterMap = {};
+            this.bind = function (entry) {
+                this.routerMap[entry.path] = {servlet: entry.servlet, name: entry.name};
+                this.prototype.createContext(entry.path, this.accept);
+            };
+            this.unbind = function (entry) {
+                if (this.routerMap[entry.path]) {
+                    this.routerMap[entry.path] = null;
+                    this.prototype.removeContext(entry.path);
+                }
+            };
+            this.accept = function (ex) {
+                var reqPath = ex.getRequestURI().getPath();
+                if (config.server.static_resource && reqPath.contains(".")) {
+                    var suffix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
+                    if (config.server.static_resource.indexOf(suffix) > -1) {
+                        load("./bin/static.js");
+                        static_servlet.service(ex, reqPath);
                         return;
                     }
                 }
-            }
 
+                try {
+                    var req = server.initRequest(ex);
+                    var resp = server.initResponse(ex);
 
-            var entry = server.routerMap[ex.getRequestURI().getPath()];
+                    //filter process
+                    for (var j in server.filterMap) {
+                        if (ex.getRequestURI().getPath().startsWith(j)) {
+                            load(server.filterMap[j].servlet);
+                            var filter = engine.get(server.filterMap[j].name);
+                            var after = filter.service(req, resp) || resp;
+                            if (after.to) {
+                                ex.getResponseHeaders().set("Location", after.to);
+                                ex.sendResponseHeaders(302, -1);
+                                return;
+                            }
+                        }
+                    }
 
-            resp.headers.set("Content-Type", "application/json;charset=utf-8");
-            var respJsonObj = {code: 404, msg: "NOT_FOUND"};
-            if (entry != null) {
-                load(entry.servlet);
-                var servlet = engine.get(entry.name);
-                var after = servlet.service(req, resp)||resp;
+                    var entry = server.routerMap[ex.getRequestURI().getPath()];
 
-                if (after.to) {
-                    ex.getResponseHeaders().set("Location", after.to);
-                    ex.sendResponseHeaders(302, -1);
-                    return;
+                    resp.headers.set("Content-Type", "application/json;charset=utf-8");
+                    var respJsonObj = {code: 404, msg: "NOT_FOUND"};
+                    if (entry != null) {
+                        load(entry.servlet);
+                        var servlet = engine.get(entry.name);
+                        var after = servlet.service(req, resp) || resp;
+
+                        if (after.to) {
+                            ex.getResponseHeaders().set("Location", after.to);
+                            ex.sendResponseHeaders(302, -1);
+                            return;
+                        }
+
+                        respJsonObj = {
+                            code: after.code,
+                            msg: after.msg.toString(),
+                            body: after.body instanceof StringBuffer ? after.body.toString() : after.body
+                        }
+                    }
+                    var respBodyStr = new StringBuffer();
+                    respBodyStr.append(JSON.stringify(respJsonObj));
+                    ex.sendResponseHeaders(200, respBodyStr.toString().getBytes(StandardCharsets.UTF_8).length);
+                    ex.getResponseBody().write(respBodyStr.toString().getBytes(StandardCharsets.UTF_8));
+                    ex.getResponseBody().close();
+                } catch (e) {
+                    //println(e.toString());
+                    var error = new StringBuffer().append(JSON.stringify({
+                        code: 500,
+                        msg: "error",
+                        body: e.toString()
+                    }));
+                    ex.sendResponseHeaders(200, error.toString().getBytes(StandardCharsets.UTF_8).length);
+                    ex.getResponseBody().write(error.toString().getBytes(StandardCharsets.UTF_8));
+                    ex.getResponseBody().close();
+                }
+            };
+            this.start = function (config) {
+                var jserver = HttpServer.create(new InetSocketAddress(config.server.port), -1);
+                $.logger().info("Server for listen on port:" + config.server.port);
+                var endpoints = config.endpoints;
+                if (config.server.use_dynamic_bind) {
+                    endpoints.push({path: "/@bind", servlet: "./bin/bind.js", name: "bind"});
                 }
 
-                respJsonObj = {
-                    code: after.code,
-                    msg: after.msg.toString(),
-                    body: after.body instanceof StringBuffer ? after.body.toString() : after.body
+                var filters = config.filters || [];
+                for (var j in filters) {
+                    this.filterMap[filters[j].path] = {servlet: filters[j].servlet, name: filters[j].name};
                 }
+
+                for (var i in endpoints) {
+                    this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
+                    jserver.createContext(endpoints[i].path, this.accept);
+                    $.logger().info("Init servlet for path:" + endpoints[i].path);
+                }
+                jserver.setExecutor(Executors.newFixedThreadPool(config.server.threads));
+                jserver.start();
+                this.prototype = jserver;
+                $.logger().info("Tropic is started.");
+            };
+            this.stop = function () {
+                this.prototype.stop(1);
+            };
+        }
+
+        var server = new Server();
+        server.start(config);
+        Runtime.getRuntime().addShutdownHook(new Thread(function () {
+            server.stop(1);
+            $.logger().info("Server is stopped");
+        }));
+        while (true) {
+            var cmd = read(null, false);
+            $.logger().info("--User Command--");
+            $.logger().info(cmd);
+            try {
+                eval(cmd);
+            } catch (e) {
+                $.logger().info(e);
             }
-            var respBodyStr = new StringBuffer();
-            respBodyStr.append(JSON.stringify(respJsonObj));
-            ex.sendResponseHeaders(200, respBodyStr.toString().getBytes(StandardCharsets.UTF_8).length);
-            ex.getResponseBody().write(respBodyStr.toString().getBytes(StandardCharsets.UTF_8));
-            ex.getResponseBody().close();
-        } catch (e) {
-            //println(e.toString());
-            var error = new StringBuffer().append(JSON.stringify({
-                code: 500,
-                msg: "error",
-                body: e.toString()
-            }));
-            ex.sendResponseHeaders(200, error.toString().getBytes(StandardCharsets.UTF_8).length);
-            ex.getResponseBody().write(error.toString().getBytes(StandardCharsets.UTF_8));
-            ex.getResponseBody().close();
         }
-    },
-    start: function (config) {
-        var server = HttpServer.create(new InetSocketAddress(config.server.port), -1);
-        $.logger().info("Server for listen on port:" + config.server.port);
-        var endpoints = config.endpoints;
-        var self = this;
-        if (config.server.use_dynamic_bind) {
-            endpoints.push({path: "/@bind", servlet: "./bin/bind.js", name: "bind"});
-        }
-
-        var filters = config.filters || [];
-        for (var j in filters) {
-            this.filterMap[filters[j].path] = {servlet: filters[j].servlet, name: filters[j].name};
-        }
-
-        for (var i in endpoints) {
-            this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
-            server.createContext(endpoints[i].path, self.accept);
-            $.logger().info("Init servlet for path:" + endpoints[i].path);
-        }
-        server.setExecutor(Executors.newFixedThreadPool(config.server.threads));
-        server.start();
-        this.$ = server;
-        $.logger().info("Tropic is started.");
-    },
-    stop: function () {
-        this.$.stop(1);
     }
 };
