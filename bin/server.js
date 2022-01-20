@@ -201,9 +201,15 @@ var $ = {
             throw e;
         }
     },
-    redirect:function(resp,url){
-        resp.to=url;
+    redirect: function (resp, url) {
+        resp.to = url;
         return resp;
+    },
+    filter: function (name, fn) {
+        engine.put(name, {service: fn});
+    },
+    servlet:function (name, fn) {
+        engine.put(name, {service: fn});
     }
 };
 
@@ -245,6 +251,7 @@ var server = {
     },
     $: null,
     routerMap: {},
+    filterMap: {},
     bind: function (entry) {
         this.routerMap[entry.path] = {servlet: entry.servlet, name: entry.name};
         this.$.createContext(entry.path, this.accept);
@@ -261,7 +268,7 @@ var server = {
             var suffix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
             if (config.server.static_resource.indexOf(suffix) > -1) {
                 load("./bin/static.js");
-                static_servlet.service(ex,reqPath);
+                static_servlet.service(ex, reqPath);
                 return;
             }
         }
@@ -269,6 +276,22 @@ var server = {
         try {
             var req = server.initRequest(ex);
             var resp = server.initResponse(ex);
+
+            //filter process
+            for (var j in server.filterMap) {
+                if (ex.getRequestURI().getPath().startsWith(j)) {
+                    load(server.filterMap[j].servlet);
+                    var filter = engine.get(server.filterMap[j].name);
+                    var after = filter.service(req, resp)||resp;
+                    if (after.to) {
+                        ex.getResponseHeaders().set("Location", after.to);
+                        ex.sendResponseHeaders(302, -1);
+                        return;
+                    }
+                }
+            }
+
+
             var entry = server.routerMap[ex.getRequestURI().getPath()];
 
             resp.headers.set("Content-Type", "application/json;charset=utf-8");
@@ -276,11 +299,12 @@ var server = {
             if (entry != null) {
                 load(entry.servlet);
                 var servlet = engine.get(entry.name);
-                var after = servlet.service(req, resp);
+                var after = servlet.service(req, resp)||resp;
 
-                if(after.to){
-                    ex.getResponseHeaders().set("Location",after.to);
-                    ex.sendResponseHeaders(302,-1);
+                if (after.to) {
+                    ex.getResponseHeaders().set("Location", after.to);
+                    ex.sendResponseHeaders(302, -1);
+                    return;
                 }
 
                 respJsonObj = {
@@ -314,6 +338,12 @@ var server = {
         if (config.server.use_dynamic_bind) {
             endpoints.push({path: "/@bind", servlet: "./bin/bind.js", name: "bind"});
         }
+
+        var filters = config.filters || [];
+        for (var j in filters) {
+            this.filterMap[filters[j].path] = {servlet: filters[j].servlet, name: filters[j].name};
+        }
+
         for (var i in endpoints) {
             this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
             server.createContext(endpoints[i].path, self.accept);

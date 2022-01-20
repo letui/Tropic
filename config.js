@@ -36,5 +36,8 @@ var config =
         endpoints: [
             {path: "/", servlet: "./bin/index.js", name: "index"},
             {path: "/@db", servlet: "./bin/dbutils.js", name: "dbutils"}
+        ],
+        filters: [
+         //{path: "/", servlet: "./filter/corefilter.js", name: "corefilter"}
         ]
     };
