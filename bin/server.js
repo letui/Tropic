@@ -349,6 +349,7 @@ var $ = {
         }
 
         var server = new Server();
+        engine.put("server",server);
         server.start(config);
         Runtime.getRuntime().addShutdownHook(new Thread(function () {
             server.stop(1);
