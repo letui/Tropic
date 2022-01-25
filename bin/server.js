@@ -351,6 +351,12 @@ var $ = {
         var server = new Server();
         engine.put("server",server);
         server.start(config);
+        var pid=java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+        pid = pid.substring(0, pid.indexOf("@"));
+        println(pid);
+        var out=outStream(pathToFile("./app.pid"));
+        out.write(pid.getBytes());
+        streamClose(out);
         Runtime.getRuntime().addShutdownHook(new Thread(function () {
             server.stop(1);
             $.logger().info("Server is stopped");
