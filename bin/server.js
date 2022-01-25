@@ -70,7 +70,7 @@ var $ = {
             return $.redis.prototype.pool.getResource();
         }
     },
-    db:function() {
+    db: function () {
         DriverManager.getDriver(config.db.url);
         return DriverManager.getConnection(config.db.url, config.db.user, config.db.pass);
     },
@@ -258,12 +258,13 @@ var $ = {
                 if (config.server.static_resource && reqPath.contains(".")) {
                     var suffix = reqPath.substring(reqPath.indexOf("."), reqPath.length);
                     if (config.server.static_resource.indexOf(suffix) > -1) {
-                        load("./bin/static.js");
+                        if (!engine.get("static_servlet")) {
+                            load("./bin/static.js");
+                        }
                         static_servlet.service(ex, reqPath);
                         return;
                     }
                 }
-
                 try {
                     var req = server.initRequest(ex);
                     var resp = server.initResponse(ex);
@@ -349,12 +350,12 @@ var $ = {
         }
 
         var server = new Server();
-        engine.put("server",server);
+        engine.put("server", server);
         server.start(config);
-        var pid=java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+        var pid = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
         pid = pid.substring(0, pid.indexOf("@"));
-        $.logger().info("App-pid:"+pid);
-        var out=outStream(pathToFile("./app.pid"));
+        $.logger().info("App-pid:" + pid);
+        var out = outStream(pathToFile("./app.pid"));
         out.write(pid.getBytes());
         streamClose(out);
         Runtime.getRuntime().addShutdownHook(new Thread(function () {
@@ -362,7 +363,7 @@ var $ = {
             $.logger().info("Server is stopped");
         }));
         while (true) {
-            if(config.console){
+            if (config.console) {
                 var cmd = read(null, false);
                 $.logger().info("--User Command--");
                 $.logger().info(cmd);
