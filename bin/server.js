@@ -353,7 +353,7 @@ var $ = {
         server.start(config);
         var pid=java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
         pid = pid.substring(0, pid.indexOf("@"));
-        println("App-pid:"+pid);
+        $.logger().info("App-pid:"+pid);
         var out=outStream(pathToFile("./app.pid"));
         out.write(pid.getBytes());
         streamClose(out);
