@@ -362,13 +362,15 @@ var $ = {
             $.logger().info("Server is stopped");
         }));
         while (true) {
-            var cmd = read(null, false);
-            $.logger().info("--User Command--");
-            $.logger().info(cmd);
-            try {
-                eval(cmd);
-            } catch (e) {
-                $.logger().info(e);
+            if(config.console){
+                var cmd = read(null, false);
+                $.logger().info("--User Command--");
+                $.logger().info(cmd);
+                try {
+                    eval(cmd);
+                } catch (e) {
+                    $.logger().info(e);
+                }
             }
         }
     }
