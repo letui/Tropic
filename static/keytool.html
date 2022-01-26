@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KeyTool</title>
+    <style>
+        label {
+            display: inline-block;
+            width: 140px;
+            text-align: right;
+        }
+
+        form {
+            width: 100%;
+            text-align: center;
+        }
+
+        input {
+            width: 300px;
+            height: 22px;
+        }
+
+        body {
+            font-size: 20px;
+        }
+
+        hgroup {
+            margin-top: 5px;
+        }
+
+        button {
+            width: 150px;
+            height: 30px;
+        }
+
+        .height32 {
+            height: 32px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="jq.js"></script>
+    <script>
+        function submitform() {
+            var isbreak=false;
+            $("input:required").each(function(i,n){
+                if($(n).val().length==0){
+                    isbreak=true;
+                }
+            });
+            if(isbreak){ alert("请填写完整！！"); return;}
+            $.ajax({
+                url: "/@keytool",
+                type: "post",
+                contentType: "application/json",
+                dataType: "json",
+                data: JSON.stringify({form: $("#genkey_form").serializeArray()}),
+                success: function (resp) {
+                    alert(resp.body.msg);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+<form action="/keytool" id="genkey_form" method="post">
+    <h1>KeyTool</h1>
+    <hgroup>
+        <label>秘钥别名:</label><input name="alias" value="tropic" required="required"/></hgroup>
+    <hgroup><label>秘钥密码:</label><input name="keypasswd" value="tropic123456" required="required"/></hgroup>
+    <hgroup><label>加密算法:</label><input name="alg" value="RSA" required="required" readonly="readonly"/></hgroup>
+    <hgroup><label>长度:</label><input name="keysize" type="number" step="1024" max="4096" min="1024" value="1024"
+                                     required="required"/></hgroup>
+    <hgroup><label>有效期:</label><input name="expire" value="365" min="180" type="number" required="required"/></hgroup>
+    <hgroup><label>秘钥库文件名:</label><input name="keystorename" value="tropic.keystore" required="required"/></hgroup>
+    <hgroup><label>秘钥库密码:</label><input name="keystorepass" value="tropic123456" required="required"/></hgroup>
+    <hgroup><label>CN=</label><input name="cnname" value="" required="required" placeholder="名字与姓氏"/></hgroup>
+    <hgroup><label>OU=</label><input name="ouname" value="" required="required" placeholder="组织单位名称"/></hgroup>
+    <hgroup><label>O=</label><input name="oname" value="" required="required" placeholder="组织名称"/></hgroup>
+    <hgroup><label>L=</label><input name="lname" value="" required="required" placeholder="城市或区域名称"/></hgroup>
+    <hgroup><label>ST=</label><input name="stname" value="" required="required" placeholder="州或省份名称"/></hgroup>
+    <hgroup><label>C=</label><input name="cname" value="" required="required" placeholder="单位的两字母国家代码"/></hgroup>
+    <hgroup>
+        <input type="reset" value="重置" class="height32"/>
+        <input type="button" value="生成" class="height32" onclick="submitform()"/></hgroup>
+</form>
+</body>
+</html>

@@ -2,6 +2,9 @@ importPackage(com.sun.net.httpserver, java.nio.charset, java.net, java.lang, jav
     java.util, java.time.format, java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
 importPackage(com.mongodb);
 importPackage(java.nio.file);
+importPackage(java.security);
+importPackage(javax.net.ssl);
+
 
 var $ = {
     neo4j: function (session) {
@@ -198,6 +201,32 @@ var $ = {
         resp.to = url;
         return resp;
     },
+    genkey: function (cmdObj) {
+        var localPath = Paths.get("./" + cmdObj.keystorename);
+        if (Files.exists(localPath)) {
+            return {ok: true, msg: "The keystore of named '" + cmdObj.keystorename + "' has already exist."};
+        }
+        var cmdTmpl = "keytool -genkey -alias %s -keypass %s -keyalg %s -keysize %s -validity %s -keystore  ./%s -storepass %s -dname \"CN=%s, OU=%s, O=%s, L=%s, ST=%s, C=%s\"";
+        var realCMD = java.lang.String.format(cmdTmpl, cmdObj.alias, cmdObj.keypasswd, cmdObj.alg, cmdObj.keysize, cmdObj.expire, cmdObj.keystorename, cmdObj.keystorepass,
+            cmdObj.cname, cmdObj.ouname, cmdObj.oname, cmdObj.lname, cmdObj.stname, cmdObj.cname);
+
+        var process = null;
+        var os = java.lang.System.getenv("OS");
+        if (os.startsWith("Windows")) {
+            process = java.lang.Runtime.getRuntime().exec(["cmd", "/c", realCMD]);
+        } else {
+            process = java.lang.Runtime.getRuntime().exec(["/bin/sh", "-c", realCMD]);
+        }
+        var inp = new DataInputStream(process.getInputStream());
+        var line = null;
+        while ((line = inp.readLine()) != null) {
+            println(line);
+            return {ok: false, msg: line};
+        }
+        process.waitFor();
+        $exit = process.exitValue();
+        return {ok: true, msg: "Your keystore is generated"};
+    },
     filter: function (name, fn) {
         engine.put(name, {service: fn});
     },
@@ -322,7 +351,22 @@ var $ = {
                 }
             };
             this.start = function (config) {
-                var jserver = HttpServer.create(new InetSocketAddress(config.server.port), -1);
+                var jserver = null;
+
+                if (config.server.https_enable) {
+                    jserver = HttpsServer.create(new InetSocketAddress(config.server.port), -1);
+                    var ks = KeyStore.getInstance("JKS");   //建立证书库
+                    ks.load(new FileInputStream(config.server.key_store_path), config.server.key_store_pass.toCharArray());  //载入证书
+                    var kmf = KeyManagerFactory.getInstance("SunX509");  //建立一个密钥管理工厂
+                    kmf.init(ks, config.server.key_pass.toCharArray());  //初始工厂
+                    var sslContext = SSLContext.getInstance("SSLv3");  //建立证书实体
+                    sslContext.init(kmf.getKeyManagers(), null, null);   //初始化证书
+                    var httpsConfigurator = new HttpsConfigurator(sslContext);
+                    jserver.setHttpsConfigurator(httpsConfigurator);
+                } else {
+                    jserver = HttpServer.create(new InetSocketAddress(config.server.port), -1);
+                }
+
                 $.logger().info("Server for listen on port:" + config.server.port);
                 var endpoints = config.endpoints;
                 if (config.server.use_dynamic_bind) {

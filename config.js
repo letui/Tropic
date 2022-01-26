@@ -29,6 +29,10 @@ var config =
         server: {
             port: 9999,
             threads: 200,
+            https_enable:false,
+            key_store_path:"./tropic.keystore",
+            key_store_pass:"tropic123456",
+            key_pass:"tropic123456",
             use_dynamic_bind: true,
             auth_bind_token: "Tropic",
             static_resource: [".js", ".css", ".html", ".png",".ico"]
