@@ -288,7 +288,7 @@ var $ = {
         function Server() {
             this.status = 0;
             this.initRequest = function (ex) {
-                var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody()));
+                var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody(),"UTF-8"));
                 var line = "";
                 var reqBody = "";
                 while ((line = bfr.readLine()) != null) {
