@@ -29,6 +29,9 @@ var config =
         server: {
             port: 9999,
             threads: 200,
+            basic_auth_enable:false,
+            basic_auth_user:"admin",
+            basic_auth_pass:"admin",
             https_enable:false,
             key_store_path:"./tropic.keystore",
             key_store_pass:"tropic123456",

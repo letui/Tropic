@@ -433,6 +433,16 @@ var $ = {
                     this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
                     jserver.createContext(endpoints[i].path, this.accept);
                     $.logger().info("Init servlet for path:" + endpoints[i].path);
+                    if (config.server.basic_auth_enable) {
+                        try {
+                            var authHdl = new BasicAuthenticator(endpoints[i].path, function (usr, pass) {
+                                return usr == config.server.basic_auth_user && pass == config.server.basic_auth_pass;
+                            });
+                            jcontext.setAuthenticator(authHdl);
+                        } catch (e) {
+                            println(e);
+                        }
+                    }
                 }
                 jserver.setExecutor(Executors.newFixedThreadPool(config.server.threads));
                 jserver.start();
