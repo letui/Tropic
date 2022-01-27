@@ -1,3 +1,4 @@
+//config for endpoints {path: "/@keytool", servlet: "./bin/keytool.js", name: "keytool"}
 $.servlet("keytool", function (req, resp) {
     var array = req.body.form;
     var cmdObj = {};

@@ -201,12 +201,30 @@ var $ = {
         resp.to = url;
         return resp;
     },
+    at: function (item, obj) {
+        var type = Object.prototype.toString.call(obj);
+        if (type == "[object Array]" || type == "[object String]") {
+            return obj.indexOf(item);
+        } else if (type == "[object Object]") {
+            return obj.hasOwnProperty(item);
+        }
+    },
+    each: function (obj, fn) {
+        var type = Object.prototype.toString.call(obj);
+        if (type == "[object Object]" || type == "[object Array]") {
+            for (var i in obj) {
+                fn(i, obj[i]);
+            }
+        } else {
+            fn(0, obj);
+        }
+    },
     genkey: function (cmdObj) {
         var localPath = Paths.get("./" + cmdObj.keystorename);
         if (Files.exists(localPath)) {
             return {ok: true, msg: "The keystore of named '" + cmdObj.keystorename + "' has already exist."};
         }
-        var cmdTmpl = "keytool -genkey -alias %s -keypass %s -keyalg %s -keysize %s -validity %s -keystore  ./%s -storepass %s -dname \"CN=%s, OU=%s, O=%s, L=%s, ST=%s, C=%s\"";
+        var cmdTmpl = "keytool -genkeypair -alias %s -keypass %s -keyalg %s -keysize %s -validity %s -keystore  ./%s -storepass %s -dname \"CN=%s, OU=%s, O=%s, L=%s, ST=%s, C=%s\"";
         var realCMD = java.lang.String.format(cmdTmpl, cmdObj.alias, cmdObj.keypasswd, cmdObj.alg, cmdObj.keysize, cmdObj.expire, cmdObj.keystorename, cmdObj.keystorepass,
             cmdObj.cname, cmdObj.ouname, cmdObj.oname, cmdObj.lname, cmdObj.stname, cmdObj.cname);
 
@@ -233,8 +251,42 @@ var $ = {
     servlet: function (name, fn) {
         engine.put(name, {service: fn});
     },
+    console: function () {
+        while (true) {
+            var cmd = read(null, false);
+            $.logger().info("--User Command--");
+            $.logger().info(cmd);
+            try {
+                eval(cmd);
+            } catch (e) {
+                $.logger().info(e);
+            }
+        }
+    },
+    status: function () {
+        if (engine.get("server")) {
+            return server.status > 0 ? "RUNNING" : "SHUTDOWN";
+        } else {
+            return "NOT_BOOT";
+        }
+    },
+    afterBoot:function (fn){
+        config.server.afterBoot=fn;
+    },
+    afterShutdown:function(fn){
+        config.server.afterShutdown=fn;
+    },
+    shutdown: function () {
+        if (engine.get("server")) {
+            if (server.status > 0) {
+                server.stop(1);
+                server.status = 0;
+            }
+        }
+    },
     boot: function () {
         function Server() {
+            this.status = 0;
             this.initRequest = function (ex) {
                 var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody()));
                 var line = "";
@@ -352,7 +404,6 @@ var $ = {
             };
             this.start = function (config) {
                 var jserver = null;
-
                 if (config.server.https_enable) {
                     jserver = HttpsServer.create(new InetSocketAddress(config.server.port), -1);
                     var ks = KeyStore.getInstance("JKS");   //建立证书库
@@ -387,6 +438,7 @@ var $ = {
                 jserver.start();
                 this.prototype = jserver;
                 $.logger().info("Tropic is started.");
+                this.status = 1;
             };
             this.stop = function () {
                 this.prototype.stop(1);
@@ -396,6 +448,9 @@ var $ = {
         var server = new Server();
         engine.put("server", server);
         server.start(config);
+        if (config.server.afterBoot && Object.prototype.toString.call(config.server.afterBoot) == "[object Function]") {
+            config.server.afterBoot();
+        }
         var pid = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
         pid = pid.substring(0, pid.indexOf("@"));
         $.logger().info("App-pid:" + pid);
@@ -405,17 +460,15 @@ var $ = {
         Runtime.getRuntime().addShutdownHook(new Thread(function () {
             server.stop(1);
             $.logger().info("Server is stopped");
+            if (config.server.afterShutdown && Object.prototype.toString.call(config.server.afterShutdown) == "[object Function]") {
+                config.server.afterShutdown();
+            }
         }));
-        while (true) {
-            if (config.console) {
-                var cmd = read(null, false);
-                $.logger().info("--User Command--");
-                $.logger().info(cmd);
-                try {
-                    eval(cmd);
-                } catch (e) {
-                    $.logger().info(e);
-                }
+        if (config.console) {
+            $.console();
+        } else {
+            while ($.status() == "RUNNING") {
+                Thread.sleep(5000);
             }
         }
     }
