@@ -270,11 +270,13 @@ var $ = {
             return "NOT_BOOT";
         }
     },
-    afterBoot:function (fn){
-        config.server.afterBoot=fn;
+    bind:function(entry){server.bind(entry);},
+    unbind:function(entry){server.unbind(entry);},
+    afterBoot: function (fn) {
+        config.server.afterBoot = fn;
     },
-    afterShutdown:function(fn){
-        config.server.afterShutdown=fn;
+    afterShutdown: function (fn) {
+        config.server.afterShutdown = fn;
     },
     shutdown: function () {
         if (engine.get("server")) {
@@ -288,7 +290,7 @@ var $ = {
         function Server() {
             this.status = 0;
             this.initRequest = function (ex) {
-                var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody(),"UTF-8"));
+                var bfr = new BufferedReader(new InputStreamReader(ex.getRequestBody(), "UTF-8"));
                 var line = "";
                 var reqBody = "";
                 while ((line = bfr.readLine()) != null) {
@@ -431,7 +433,7 @@ var $ = {
 
                 for (var i in endpoints) {
                     this.routerMap[endpoints[i].path] = {servlet: endpoints[i].servlet, name: endpoints[i].name};
-                    jserver.createContext(endpoints[i].path, this.accept);
+                    var jcontext = jserver.createContext(endpoints[i].path, this.accept);
                     $.logger().info("Init servlet for path:" + endpoints[i].path);
                     if (config.server.basic_auth_enable) {
                         try {
