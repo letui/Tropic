@@ -1,5 +1,6 @@
 importPackage(com.sun.net.httpserver, java.nio.charset, java.net, java.lang, java.io, java.sql,
-    java.util, java.time.format, java.time, java.util.concurrent, org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
+    java.util, java.time.format, java.time, java.util.concurrent);
+importPackage(org.apache.commons.dbutils, org.apache.commons.dbutils.handlers);
 importPackage(com.mongodb);
 importPackage(java.nio.file);
 importPackage(java.security);
@@ -200,6 +201,11 @@ var $ = {
     redirect: function (resp, url) {
         resp.to = url;
         return resp;
+    },
+    empty:function(str){
+        if(str){
+            return str.length==0;
+        }
     },
     at: function (item, obj) {
         var type = Object.prototype.toString.call(obj);
