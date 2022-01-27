@@ -12,7 +12,7 @@ if(engine.get("$")){
                 var paramsHolder=[];
                 var updatePaires=[];
                 var saveParams=[];
-                for(;j<meta.getColumnCount();j++){
+                for(;j<=meta.getColumnCount();j++){
                     if(meta.getColumnName(j)=="id")continue;
                     columns.push(meta.getColumnName(j));
                     paramsHolder.push("?");
