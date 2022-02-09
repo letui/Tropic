@@ -1,5 +1,18 @@
 if(engine.get("$")){
-    $.gencrud=function(tables) {
+    $.gencrud=function(tables,asCamel) {
+        function toCamel(name){
+            var nName="";
+            var arr=name.split("_");
+            for(var j in arr){
+                var n=arr[j];
+                if(j==0){
+                    nName=nName.concat(n.charAt(0).toLowerCase()).concat(n.substring(1,n.length));
+                }else{
+                    nName=nName.concat(n.charAt(0).toUpperCase()).concat(n.substring(1,n.length));
+                }
+            }
+            return nName;
+        }
         var jdbc = $.jdbc();
         var endpoints=[];
         for (var i in tables) {
@@ -12,14 +25,17 @@ if(engine.get("$")){
                 var paramsHolder=[];
                 var updatePaires=[];
                 var saveParams=[];
+                var selectColumns=[];
                 for(;j<=meta.getColumnCount();j++){
                     if(meta.getColumnName(j)=="id")continue;
                     columns.push(meta.getColumnName(j));
+                    selectColumns.push(asCamel?meta.getColumnName(j)+" as "+toCamel(meta.getColumnName(j)):meta.getColumnName(j));
                     paramsHolder.push("?");
-                    saveParams.push("data."+meta.getColumnName(j));
+                    saveParams.push(asCamel?"data."+toCamel(meta.getColumnName(j)):"data."+meta.getColumnName(j));
                     updatePaires.push(meta.getColumnName(j)+"=?");
                 }
                 model.column=columns.toString();
+                model.selectColumns=selectColumns.toString();
                 model.paramsHolder=paramsHolder.toString();
                 model.updatePaires=updatePaires.toString();
                 model.saveParams=saveParams.toString();
@@ -49,7 +65,7 @@ if(engine.get("$")){
 
                 let templ_select=`var ${model.table}_select = {
                 service:function(req,resp){
-                    var sql = "select ${model.column},id from ${model.table} limit 0,20";
+                    var sql = "select ${model.selectColumns},id from ${model.table} limit 0,20";
                     var data = req.body;
                     var jdbc = $.jdbc();
                     var result = [];
