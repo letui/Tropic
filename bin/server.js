@@ -65,8 +65,14 @@ var $ = {
             var configRedis = new ConfigRedis();
             configRedis.setMaxIdle(config.redis.maxIdle);
             configRedis.setMaxTotal(config.redis.maxTotal);
+            configRedis.setTestOnBorrow(true);
+            configRedis.setTestOnReturn(true);
             var Pool = Java.type("redis.clients.jedis.JedisPool");
-            $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout);
+            if(config.redis.password){
+                $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout,config.redis.password);
+            }else {
+                $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout);
+            }
         }
         if (back) {
             $.redis.prototype.pool.returnResource(back);

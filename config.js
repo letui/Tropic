@@ -18,6 +18,7 @@ var config =
         redis: {
             host: "192.168.10.173",
             port: 6379,
+            password:"123qwe123",
             maxIdle: 10,
             maxTotal: 20,
             maxTimeout: 2000
