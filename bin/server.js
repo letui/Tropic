@@ -353,7 +353,7 @@ var $ = {
                 var line = "";
                 var reqBody = "";
                 while ((line = bfr.readLine()) != null) {
-                    reqBody = reqBody.concat(line);
+                    reqBody = reqBody.concat(line+"\r\n");
                 }
                 return {
                     headers: ex.getRequestHeaders(),
