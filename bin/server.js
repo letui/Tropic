@@ -59,6 +59,18 @@ var $ = {
         name = name ? name : "default";
         return factory.getLogger(name);
     },
+    debug:function(str){
+        $.logger().debug(str);
+    },
+    info:function(str){
+        $.logger().info(str);
+    },
+    warn:function(str){
+        $.logger().warn(str);
+    },
+    error:function(str){
+        $.logger().error(str);
+    },
     redis: function (back) {
         if (!$.redis.prototype.pool) {
             var ConfigRedis = Java.type("redis.clients.jedis.JedisPoolConfig");
