@@ -62,22 +62,53 @@ var $ = {
     redis: function (back) {
         if (!$.redis.prototype.pool) {
             var ConfigRedis = Java.type("redis.clients.jedis.JedisPoolConfig");
+            var HostAndPort = Java.type("redis.clients.jedis.HostAndPort");
+            var JedisCluster= Java.type("redis.clients.jedis.JedisCluster");
             var configRedis = new ConfigRedis();
             configRedis.setMaxIdle(config.redis.maxIdle);
             configRedis.setMaxTotal(config.redis.maxTotal);
             configRedis.setTestOnBorrow(true);
             configRedis.setTestOnReturn(true);
-            var Pool = Java.type("redis.clients.jedis.JedisPool");
-            if(config.redis.password){
-                $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout,config.redis.password);
-            }else {
-                $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout);
+
+            if (config.redis.clusters) {
+                var clusters=config.redis.clusters;
+                var set=new HashSet();
+                for(var i in clusters){
+                    var node=new HostAndPort(clusters[i].host,clusters[i].port);
+                    set.add(node);
+                }
+                $.redis.prototype.pool = new ArrayBlockingQueue(config.redis.maxTotal);
+                for(var i=0;i<config.redis.maxTotal;i++){
+                    if(config.redis.password){
+                        var cnn=new JedisCluster(set,config.redis.maxTimeout,config.redis.maxTimeout,5,config.redis.password,configRedis);
+                        $.redis.prototype.pool.add(cnn);
+                    }else{
+                        var cnn=new JedisCluster(set,config.redis.maxTimeout,config.redis.maxTimeout,5,configRedis);
+                        $.redis.prototype.pool.add(cnn);
+                    }
+                }
+            } else {
+                var Pool = Java.type("redis.clients.jedis.JedisPool");
+                if (config.redis.password) {
+                    $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout, config.redis.password);
+                } else {
+                    $.redis.prototype.pool = new Pool(configRedis, config.redis.host, config.redis.port, config.redis.maxTimeout);
+                }
             }
         }
+
         if (back) {
-            $.redis.prototype.pool.returnResource(back);
+            if (config.redis.clusters) {
+                $.redis.prototype.pool.add(back);
+            }else{
+                $.redis.prototype.pool.returnResource(back);
+            }
         } else {
-            return $.redis.prototype.pool.getResource();
+            if (config.redis.clusters) {
+                return $.redis.prototype.pool.take();
+            }else {
+                return $.redis.prototype.pool.getResource();
+            }
         }
     },
     db: function () {
@@ -208,9 +239,9 @@ var $ = {
         resp.to = url;
         return resp;
     },
-    empty:function(str){
-        if(str){
-            return str.length==0;
+    empty: function (str) {
+        if (str) {
+            return str.length == 0;
         }
     },
     at: function (item, obj) {
@@ -282,8 +313,12 @@ var $ = {
             return "NOT_BOOT";
         }
     },
-    bind:function(entry){server.bind(entry);},
-    unbind:function(entry){server.unbind(entry);},
+    bind: function (entry) {
+        server.bind(entry);
+    },
+    unbind: function (entry) {
+        server.unbind(entry);
+    },
     afterBoot: function (fn) {
         config.server.afterBoot = fn;
     },
