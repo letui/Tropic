@@ -163,6 +163,17 @@ var $ = {
         return new QueryRunner();
     },
     asMapList: new MapListHandler(),
+    query:function(sql,params){
+        var conn=$.jdbc();
+        var sqlr=$.sql();
+        var p=new Array();
+        for(var i=1;i<arguments.length;i++){
+            p.push(arguments[i]);
+        }
+        var rst=sqlr.query(conn,sql,this.asMapList,p);
+        $.jdbc(conn);
+        return $.format(rst);
+    },
     get: function (url, headers, asJson) {
         var reqURL = new URL(url);
         var conn = reqURL.openConnection();
